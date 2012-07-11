@@ -1,0 +1,32 @@
+create_upstart() {
+  project=$1
+  file=$2
+  conf="/etc/init/${project}_${file}.conf"
+
+  cat > $conf << EOF
+  #!upstart
+
+  description "Node Process - $1"
+  author      "Geert Pasteels"
+
+  respawn
+
+  start on (local-filesystems and net-device-up IFACE=eth0)
+  stop  on shutdown
+
+  script
+    export NODE_ENV="production"
+    export PORT="3001"
+    exec /usr/bin/node /var/www/$project/current/$file.js >> /var/www/$project/shared/logs/$file 2>&1
+  end script
+EOF
+  
+  echo $conf
+
+  # Restart upstart script
+  stop ${project}_${file}
+  start ${project}_${file}
+  echo Restarted ${project}_${file}
+}
+
+create_upstart "$1" "$2"
